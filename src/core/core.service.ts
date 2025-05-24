@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { name, version } from '@root/package.json';
 
 @Injectable()
-export class AppService {
+export class CoreService {
   healthCheck(): string {
-    return `${name} corriendo. Version ${version}`;
+    return `${name} in running. Version ${version}`;
   }
 }
