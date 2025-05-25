@@ -1,6 +1,7 @@
-import * as Joi from 'joi';
+import { config } from 'dotenv';
 
-export const envSchema = Joi.object({
-  PORT: Joi.number().default(3000),
-  URLMONGO: Joi.string().uri().required(),
-});
+config();
+
+export const envConfig = {
+  URL_MONGO: process.env.URL_MONGO!,
+};
