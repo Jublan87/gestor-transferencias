@@ -1,6 +1,6 @@
 {
   "name": "gestor-transferencias",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "",
   "author": "",
   "private": true,
@@ -65,7 +65,7 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
@@ -73,7 +73,35 @@
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "coverageDirectory": "./coverage",
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@root/(.*)$": "<rootDir>/$1"
+    },
+    "modulePathIgnorePatterns": [
+      "./coverage",
+      "<rootDir>/coverage"
+    ],
+    "testPathIgnorePatterns": [
+      "./coverage",
+      "<rootDir>/dist",
+      "<rootDir>/node_modules",
+      "<rootDir>/coverage",
+      "<rootDir>/.eslintrc.js",
+      "/*.mock.ts"
+    ],
+    "coveragePathIgnorePatterns": [
+      "./coverage",
+      "<rootDir>/dist",
+      "<rootDir>/node_modules",
+      "<rootDir>/coverage",
+      "<rootDir>/coverage/lcov-report",
+      "<rootDir>/coverage/*",
+      "<rootDir>/.eslintrc.js",
+      "main.ts",
+      "module.ts",
+      "config.ts",
+      "/*.mock.ts"
+    ]
   }
 }

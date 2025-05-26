@@ -35,4 +35,4 @@ import { TransferSchema } from './infrastructure/schemas/transfer.schema';
   ],
   exports: [],
 })
-export class CompaniesModule {}
+export class CompanyModule {}

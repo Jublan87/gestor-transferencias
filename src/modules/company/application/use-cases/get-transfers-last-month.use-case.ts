@@ -1,6 +1,6 @@
+import { Inject } from '@nestjs/common';
 import { TransferRepositoryPort } from '../ports/transfer.repository.port';
 import { CompanyRepositoryPort } from '../ports/company.repository.port';
-import { Inject } from '@nestjs/common';
 import { Company } from '../../domain/entity/company.entity';
 
 export class GetCompaniesWithTransfersLastMonthUseCase {

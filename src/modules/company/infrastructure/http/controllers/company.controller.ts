@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   Controller,
   Get,
@@ -20,7 +22,7 @@ export class CompanyController {
     private readonly adhereCompanyUseCase: AdhereCompanyUseCase,
   ) {}
 
-  @Get('transfers-last-month')
+  @Get('with-transfers-last-month')
   async getWithTransfers(): Promise<any> {
     try {
       return await this.getCompaniesWithTransfersLastMonthUseCase.execute();
