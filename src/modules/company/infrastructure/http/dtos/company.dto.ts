@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, Matches } from 'class-validator';
 
 export class AdhereCompanyDto {
   @ApiProperty({ type: String })
@@ -15,6 +15,8 @@ export class AdhereCompanyDto {
   @ApiProperty({ type: String })
   @IsString()
   @IsNotEmpty()
-  @IsDateString()
+  @Matches(/^\d{4}\/\d{2}\/\d{2}$/, {
+    message: 'adhesionDate must be in the format AAAA/MM/DD',
+  })
   adhesionDate: string;
 }
