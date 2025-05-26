@@ -2,12 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { MongoCompanyRepository } from '@root/src/modules/company/infrastructure/repositories/company.repository';
 
 describe('Company Endpoints (e2e)', () => {
   let app: INestApplication;
+  let moduleFixture: TestingModule;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
@@ -38,9 +40,9 @@ describe('Company Endpoints (e2e)', () => {
 
   it('/companies/adhere (POST)', async () => {
     const dto = {
-      cuit: '30-99999999-9',
-      businessName: 'Empresa E2E',
-      adhesionDate: new Date().toISOString(),
+      cuit: 'mock-cuit',
+      businessName: 'mock company',
+      adhesionDate: '2023-10-01',
     };
     const res = await request(app.getHttpServer())
       .post('/companies/adhere')
@@ -49,5 +51,10 @@ describe('Company Endpoints (e2e)', () => {
     expect(res.body).toHaveProperty('cuit', dto.cuit);
     expect(res.body).toHaveProperty('businessName', dto.businessName);
     expect(res.body).toHaveProperty('adhesionDate');
+
+    const repo = moduleFixture.get<MongoCompanyRepository>(
+      'CompanyRepositoryPort',
+    );
+    await repo.deleteByCuit(dto.cuit);
   });
 });

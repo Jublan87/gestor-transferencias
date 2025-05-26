@@ -1,3 +1,4 @@
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CompanyController } from './company.controller';
 import { GetCompaniesWithTransfersLastMonthUseCase } from '../../../application/use-cases/get-transfers-last-month.use-case';
@@ -5,7 +6,6 @@ import { GetCompaniesLastMonthUseCase } from '../../../application/use-cases/get
 import { AdhereCompanyUseCase } from '../../../application/use-cases/adhere-company.use-case';
 import { AdhereCompanyDto } from '../dtos/company.dto';
 import { Company } from '../../../domain/entity/company.entity';
-import { HttpException } from '@nestjs/common';
 
 describe('CompanyController', () => {
   let controller: CompanyController;
@@ -59,13 +59,29 @@ describe('CompanyController', () => {
       expect(await controller.getWithTransfers()).toBe(result);
     });
 
-    it('should throw HttpException on error', async () => {
+    it('should throw HttpException on generic error', async () => {
       (
         getCompaniesWithTransfersLastMonthUseCase.execute as jest.Mock
       ).mockRejectedValue(new Error('fail'));
       await expect(controller.getWithTransfers()).rejects.toThrow(
         HttpException,
       );
+      // opcional: comprobar código de estado
+      await expect(controller.getWithTransfers()).rejects.toMatchObject({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Internal server error',
+      });
+    });
+
+    it('should rethrow HttpException from use case', async () => {
+      const httpError = new HttpException(
+        'Bad request',
+        HttpStatus.BAD_REQUEST,
+      );
+      (
+        getCompaniesWithTransfersLastMonthUseCase.execute as jest.Mock
+      ).mockRejectedValue(httpError);
+      await expect(controller.getWithTransfers()).rejects.toBe(httpError);
     });
   });
 
@@ -84,11 +100,23 @@ describe('CompanyController', () => {
       expect(await controller.getNewAdhered()).toBe(companies);
     });
 
-    it('should throw HttpException on error', async () => {
+    it('should throw HttpException on generic error', async () => {
       (getCompaniesLastMonthUseCase.execute as jest.Mock).mockRejectedValue(
         new Error('fail'),
       );
       await expect(controller.getNewAdhered()).rejects.toThrow(HttpException);
+      await expect(controller.getNewAdhered()).rejects.toMatchObject({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Internal server error',
+      });
+    });
+
+    it('should rethrow HttpException from use case', async () => {
+      const httpError = new HttpException('Not found', HttpStatus.NOT_FOUND);
+      (getCompaniesLastMonthUseCase.execute as jest.Mock).mockRejectedValue(
+        httpError,
+      );
+      await expect(controller.getNewAdhered()).rejects.toBe(httpError);
     });
   });
 
@@ -113,7 +141,7 @@ describe('CompanyController', () => {
       );
     });
 
-    it('should throw HttpException on error', async () => {
+    it('should throw HttpException on generic error', async () => {
       (adhereCompanyUseCase.execute as jest.Mock).mockRejectedValue(
         new Error('fail'),
       );
@@ -123,6 +151,21 @@ describe('CompanyController', () => {
         adhesionDate: new Date().toISOString(),
       };
       await expect(controller.adhere(dto)).rejects.toThrow(HttpException);
+      await expect(controller.adhere(dto)).rejects.toMatchObject({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Internal server error',
+      });
+    });
+
+    it('should rethrow HttpException from use case', async () => {
+      const httpError = new HttpException('Conflict', HttpStatus.CONFLICT);
+      (adhereCompanyUseCase.execute as jest.Mock).mockRejectedValue(httpError);
+      const dto: AdhereCompanyDto = {
+        cuit: '456',
+        businessName: 'Another',
+        adhesionDate: new Date().toISOString(),
+      };
+      await expect(controller.adhere(dto)).rejects.toBe(httpError);
     });
   });
 });

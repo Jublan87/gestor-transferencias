@@ -43,4 +43,9 @@ export class MongoCompanyRepository implements CompanyRepositoryPort {
       (doc) => new Company(doc.cuit, doc.businessName, doc.adhesionDate),
     );
   }
+
+  async deleteByCuit(cuit: string): Promise<boolean> {
+    const result = await this.companyModel.deleteOne({ cuit });
+    return result.deletedCount > 0;
+  }
 }
