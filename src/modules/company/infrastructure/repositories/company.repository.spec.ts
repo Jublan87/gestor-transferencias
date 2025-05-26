@@ -1,55 +1,76 @@
-import { Model } from 'mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
+import { getModelToken } from '@nestjs/mongoose';
+import { ConflictException } from '@nestjs/common';
 import { Company } from '../../domain/entity/company.entity';
 import { MongoCompanyRepository } from './company.repository';
 
-type MockModel<T = any> = Partial<Record<keyof Model<T>, jest.Mock>>;
-
 describe('MongoCompanyRepository', () => {
   let repository: MongoCompanyRepository;
-  let mockModel: MockModel;
+
+  // Mocks individuales
+  let mockExists: jest.Mock;
+  let mockSave: jest.Mock;
+  let mockFind: jest.Mock;
+
+  // Mock “constructor” que también expone exists y find
+  let mockModelConstructor: jest.Mock & {
+    exists?: jest.Mock;
+    find?: jest.Mock;
+  };
 
   beforeEach(async () => {
-    mockModel = {
-      find: jest.fn(),
-    };
+    // (Re)inicializar mocks
+    mockExists = jest.fn();
+    mockSave = jest.fn();
+    mockFind = jest.fn();
+
+    // Constructor que devuelve instancias con .save()
+    mockModelConstructor = jest.fn().mockImplementation((dto: any) => ({
+      save: mockSave.mockResolvedValue(dto),
+    }));
+    // Métodos estáticos
+    mockModelConstructor.exists = mockExists;
+    mockModelConstructor.find = mockFind;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MongoCompanyRepository,
         {
-          provide: 'CompanyModel',
-          useValue: function (dto: any) {
-            return { save: jest.fn().mockResolvedValue(dto) };
-          },
-        },
-        {
-          provide: Model,
-          useValue: mockModel,
+          provide: getModelToken('Company'),
+          useValue: mockModelConstructor,
         },
       ],
     }).compile();
 
     repository = module.get<MongoCompanyRepository>(MongoCompanyRepository);
-    (repository as any).companyModel = mockModel;
   });
 
   describe('save', () => {
-    it('should create and return a Company', async () => {
-      const input = new Company(
-        '20-12345678-9',
-        'ACME S.A.',
-        new Date('2025-05-01'),
+    const input = new Company(
+      '20-12345678-9',
+      'ACME S.A.',
+      new Date('2025-05-01'),
+    );
+
+    it('debería lanzar ConflictException si exists devuelve true', async () => {
+      mockExists.mockResolvedValue(true);
+
+      await expect(repository.save(input)).rejects.toBeInstanceOf(
+        ConflictException,
       );
-      (repository as any).companyModel = jest
-        .fn()
-        .mockImplementation((dto) => ({
-          save: jest.fn().mockResolvedValue(dto),
-        }));
+    });
+
+    it('debería crear y devolver la entidad si exists devuelve false', async () => {
+      mockExists.mockResolvedValue(false);
+      // mockSave ya está configurado para devolver el dto
 
       const result = await repository.save(input);
 
-      expect((repository as any).companyModel).toHaveBeenCalledWith(input);
+      // El “constructor” se llamó con el dto correcto
+      expect(mockModelConstructor).toHaveBeenCalledWith(input);
+      // Se invocó save()
+      expect(mockSave).toHaveBeenCalled();
+      // Resultado es instancia de Company y coincide con input
       expect(result).toBeInstanceOf(Company);
       expect(result).toEqual(input);
     });
@@ -59,7 +80,7 @@ describe('MongoCompanyRepository', () => {
     const start = new Date('2025-01-01');
     const end = new Date('2025-06-01');
 
-    it('should return an array of Company when there are documents', async () => {
+    it('debe devolver un array de Company cuando hay documentos', async () => {
       const docs = [
         {
           cuit: '20-1',
@@ -72,11 +93,11 @@ describe('MongoCompanyRepository', () => {
           adhesionDate: new Date('2025-03-01'),
         },
       ];
-      mockModel.find!.mockResolvedValue(docs);
+      mockFind.mockResolvedValue(docs);
 
       const result = await repository.findAdheredBetween(start, end);
 
-      expect(mockModel.find).toHaveBeenCalledWith({
+      expect(mockFind).toHaveBeenCalledWith({
         adhesionDate: { $gte: start, $lte: end },
       });
       expect(result).toHaveLength(2);
@@ -84,16 +105,17 @@ describe('MongoCompanyRepository', () => {
       expect(result.map((c) => c.cuit)).toEqual(['20-1', '20-2']);
     });
 
-    it('should throw error when there are no documents', async () => {
-      mockModel.find!.mockResolvedValue([]);
-      await expect(repository.findAdheredBetween(start, end)).rejects.toThrow(
-        'No companies found',
-      );
+    it('debe lanzar ConflictException cuando no hay documentos', async () => {
+      mockFind.mockResolvedValue([]);
+
+      await expect(
+        repository.findAdheredBetween(start, end),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
   });
 
   describe('findByCuits', () => {
-    it('should return Company[] even if it is empty', async () => {
+    it('debe devolver Company[] incluso si está vacío o parcial', async () => {
       const cuits = ['20-1', '20-2'];
       const docs = [
         {
@@ -102,11 +124,11 @@ describe('MongoCompanyRepository', () => {
           adhesionDate: new Date('2025-02-01'),
         },
       ];
-      mockModel.find!.mockResolvedValue(docs);
+      mockFind.mockResolvedValue(docs);
 
       const result = await repository.findByCuits(cuits);
 
-      expect(mockModel.find).toHaveBeenCalledWith({ cuit: { $in: cuits } });
+      expect(mockFind).toHaveBeenCalledWith({ cuit: { $in: cuits } });
       expect(result).toHaveLength(1);
       expect(result[0]).toBeInstanceOf(Company);
       expect(result[0].cuit).toBe('20-1');

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   Controller,
   Get,
@@ -7,6 +5,7 @@ import {
   Body,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { GetCompaniesWithTransfersLastMonthUseCase } from '../../../application/use-cases/get-transfers-last-month.use-case';
 import { GetCompaniesLastMonthUseCase } from '../../../application/use-cases/get-new-companies-last-month.use-case';
@@ -16,6 +15,8 @@ import { Company } from '../../../domain/entity/company.entity';
 
 @Controller('companies')
 export class CompanyController {
+  private readonly logger = new Logger(CompanyController.name);
+
   constructor(
     private readonly getCompaniesWithTransfersLastMonthUseCase: GetCompaniesWithTransfersLastMonthUseCase,
     private readonly getCompaniesLastMonthUseCase: GetCompaniesLastMonthUseCase,
@@ -27,7 +28,12 @@ export class CompanyController {
     try {
       return await this.getCompaniesWithTransfersLastMonthUseCase.execute();
     } catch (err) {
-      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (err instanceof HttpException) throw err;
+      this.logger.error('Unexpected error in getWithTransfers', err);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -36,7 +42,12 @@ export class CompanyController {
     try {
       return await this.getCompaniesLastMonthUseCase.execute();
     } catch (err) {
-      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (err instanceof HttpException) throw err;
+      this.logger.error('Unexpected error in getNewAdhered', err);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -49,7 +60,12 @@ export class CompanyController {
         new Date(dto.adhesionDate),
       );
     } catch (err) {
-      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (err instanceof HttpException) throw err;
+      this.logger.error('Unexpected error in adhere', err);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

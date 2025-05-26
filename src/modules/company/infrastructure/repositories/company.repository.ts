@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { CompanyDocument } from '../schemas/company.schema';
 import { CompanyRepositoryPort } from '../../application/ports/company.repository.port';
@@ -13,6 +13,13 @@ export class MongoCompanyRepository implements CompanyRepositoryPort {
   ) {}
 
   async save(company: Company): Promise<Company> {
+    // Verificar si ya existe una compañía con el mismo CUIT
+    const exists = await this.companyModel.exists({ cuit: company.cuit });
+    if (exists) {
+      throw new ConflictException(
+        `Ya existe una compañía registrada con el CUIT ${company.cuit}.`,
+      );
+    }
     const created = new this.companyModel(company);
     const doc = await created.save();
     return new Company(doc.cuit, doc.businessName, doc.adhesionDate);
@@ -24,7 +31,7 @@ export class MongoCompanyRepository implements CompanyRepositoryPort {
     });
 
     if (!docs || docs.length === 0) {
-      throw new Error('No companies found');
+      throw new ConflictException('No companies found in the given range.');
     }
     return docs.map((d) => new Company(d.cuit, d.businessName, d.adhesionDate));
   }
